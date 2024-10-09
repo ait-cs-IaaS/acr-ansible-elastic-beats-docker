@@ -1,0 +1,13 @@
+---
+galaxy_info:
+    author: Lenhard Reuter
+    description: Installs and configures elastic beats in a docker container.
+    company: Austrian Institute of Technology (AIT)
+
+    license: GPL-3.0
+    min_ansible_version: '2.1'
+
+    galaxy_tags:
+        - ubuntu
+        - docker
+        - elastic beat
