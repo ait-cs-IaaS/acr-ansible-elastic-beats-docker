@@ -1,6 +1,6 @@
 ---
 
-beat_playbook: "{{ beat | upper }}"
+beat_playbook: "{{ beat_name | upper }}"
 
 beat_name: auditbeat
 beat_version: 7.9.3
@@ -18,17 +18,17 @@ beat_docker_name: '{{ beat_name }}'
 beat_docker_hostname: '{{ dns_hostname }}'
 beat_docker_image: docker.elastic.co/beats/{{ beat_name }}:{{ beat_version }}
 beat_docker_extra_args: >-
-  {% if beat == 'auditbeat' %}
+  {% if beat_name == 'auditbeat' %}
   --volume=/proc:/hostfs/proc:ro
   --volume=/sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro
   --volume=/:/hostfs:ro
   --volume=/sys/kernel/tracing:/sys/kernel/tracing:rw
   --volume=/sys/kernel/debug:/sys/kernel/debug:ro
-  {% elif beat == 'metricbeat' %}
+  {% elif beat_name == 'metricbeat' %}
   --volume="/sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro"
   --volume="/proc:/hostfs/proc:ro"
   --volume="/:/hostfs:ro"
-  {% elif beat == 'filebeat' %}
+  {% elif beat_name == 'filebeat' %}
   --volume=/var/lib/docker/containers:/var/lib/docker/containers:ro
   --volume=/var/log:/var/log:rw
   {% endif %}

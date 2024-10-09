@@ -78,7 +78,7 @@
       [Install]
       WantedBy=multi-user.target
 
-- name: "{{ beat_playbook }}: Ensure beat service is running"
+- name: "{{ beat_playbook }}: Ensure beat_name service is running"
   become: true
   ansible.builtin.systemd:
     name: "{{ beat_name }}"
