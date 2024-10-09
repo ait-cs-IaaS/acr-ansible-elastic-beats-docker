@@ -15,7 +15,7 @@ logging_conf: {}
 output_conf: {}
 
 beat_docker_name: '{{ beat_name }}'
-beat_docker_hostname: '{{ dns_hostname }}'
+beat_docker_hostname: "{{ ansible_facts['nodename'] }}"
 beat_docker_image: docker.elastic.co/beats/{{ beat_name }}:{{ beat_version }}
 beat_docker_extra_args: >-
   {% if beat_name == 'auditbeat' %}
