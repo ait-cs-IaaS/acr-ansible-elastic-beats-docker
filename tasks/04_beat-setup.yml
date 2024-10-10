@@ -1,0 +1,21 @@
+---
+- name: "{{ beat_playbook }}: Configure beats ilm policies"
+  become: true
+  ansible.builtin.template:
+    src: ilm-policy.json.j2
+    dest: /etc/{{ beat_name }}/ilm-policy.json
+    owner: root
+    group: root
+    mode: "0640"
+
+- name: "{{ beat_playbook }}: Copy ilm policy configs to docker containers"
+  become: true
+  ansible.builtin.command:
+    cmd: docker cp /etc/{{ beat_name }}/ilm-policy.json {{ beat_name }}:/usr/share/{{ beat_name }}/
+
+- name: "{{ beat_playbook }}: Run setup for beat"
+  become: true
+  ansible.builtin.command:
+    cmd: docker exec {{ beat_docker_name }} {{ beat_name }} setup {{ '-E ' + (beat_setup_options | join(' -E ')) if beat_setup_options is defined }}
+  async: 300
+  poll: 0

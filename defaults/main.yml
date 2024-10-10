@@ -7,14 +7,14 @@ beat_version: 7.9.3
 
 beat_conf: {}
 beat_output_conf:
-  output: '{{ output_conf }}'
+  output: "{{ output_conf }}"
 beat_logging_conf:
-  logging: '{{ logging_conf }}'
+  logging: "{{ logging_conf }}"
 
 logging_conf: {}
 output_conf: {}
-
-beat_docker_name: '{{ beat_name }}'
+beat_docker_build_tag: "{{ beat_name }}_ext"
+beat_docker_name: "{{ beat_name }}"
 beat_docker_hostname: "{{ ansible_facts['nodename'] }}"
 beat_docker_image: docker.elastic.co/beats/{{ beat_name }}:{{ beat_version }}
 beat_docker_extra_args: >-
@@ -34,5 +34,9 @@ beat_docker_extra_args: >-
   {% endif %}
 
 beat_modules: []
-
 beat_ca_crt: /usr/local/share/ca-certificates/ca.crt
+
+run_beat_setup: false
+beat_setup_options:
+  - setup.ilm.overwrite=true
+  - setup.ilm.policy_file=/usr/share/{{ beat_name }}/ilm-policy.json

@@ -1,0 +1,14 @@
+---
+- name: "{{ beat_playbook }}: Create systemd service file for beat"
+  become: true
+  ansible.builtin.template:
+    src: beat.service.j2
+    dest: /etc/systemd/system/{{ beat_name }}.service
+
+- name: "{{ beat_playbook }}: Ensure beat_name service is running"
+  become: true
+  ansible.builtin.systemd:
+    name: "{{ beat_name }}"
+    state: restarted
+    daemon_reload: true
+    enabled: true

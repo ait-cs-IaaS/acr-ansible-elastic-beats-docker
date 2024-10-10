@@ -1,0 +1,27 @@
+[Unit]
+Description={{ beat_docker_name }} Docker Service
+Requires=docker.service
+After=docker.service
+
+[Service]
+User=root
+Restart=always
+ExecStart=/usr/bin/docker run \
+    --rm \
+    --network host \
+    --hostname="{{ beat_docker_hostname }}" \
+    --name="{{ beat_docker_name }}" \
+    --privileged \
+    --user="root" \
+    --cap-add="ALL" \
+    --volume="{{ beat_ca_crt }}:/usr/local/share/ca-certificates/ca.crt:ro" \
+    --volume="/etc/{{ beat_name }}/{{ beat_name }}.yml:/usr/share/{{ beat_name }}/{{ beat_name }}.yml:ro" \
+    --volume="/var/log/{{ beat_name }}:/usr/share/{{ beat_name }}/log:rw" \
+    {{ beat_docker_extra_args | indent(10, true) | trim }} \
+    --pid=host \
+    --volume=/var/run/docker.sock:/var/run/docker.sock \
+    {{ beat_docker_build_tag }} --strict.perms=false
+ExecStop=/usr/bin/docker stop {{ beat_docker_name }}
+
+[Install]
+WantedBy=multi-user.target

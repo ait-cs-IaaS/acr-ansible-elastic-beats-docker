@@ -1,0 +1,77 @@
+---
+# tasks file for elastic-beats-modules
+
+- name: "{{ beat_playbook }}: Ensure folders exist"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    recurse: true
+    owner: root
+    group: root
+  with_items:
+    - /etc/{{ beat_name }}/additional_modules
+    - /etc/{{ beat_name }}/additional_modules.d
+
+- name: "{{ beat_playbook }}: Checking module folder file exists"
+  ansible.builtin.stat:
+    path: /etc/{{ beat_name }}/additional_modules/{{ item.module }}
+  register: module_folder_info
+  when:
+    - item.url is defined
+    - item.url | length
+  loop: "{{ beat_modules }}"
+
+# Handle remote modules
+
+- name: "{{ beat_playbook }}: Download module package"
+  become: true
+  ansible.builtin.unarchive:
+    src: "{{ item.item.url }}/{{ item.item.package }}"
+    dest: /etc/{{ beat_name }}/additional_modules/
+    remote_src: true
+  when:
+    - item.skipped is not defined
+    - not item.stat.exists
+  loop: "{{ module_folder_info.results }}"
+
+- name: "{{ beat_playbook }}: Setting permissions for module folder"
+  become: true
+  ansible.builtin.file:
+    path: /etc/{{ beat_name }}/additional_modules/{{ item.item.module }}
+    mode: u=rwX,g=rX,o=rX
+    recurse: true
+  when:
+    - item.skipped is not defined
+    - not item.stat.exists
+  loop: "{{ module_folder_info.results }}"
+
+# Handle local modules
+
+- name: "{{ beat_playbook }}: Copy modules from local source"
+  become: true
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: /etc/{{ beat_name }}/additional_modules/
+    mode: u=rwX,g=rX,o=rX
+  when:
+    - item.src is defined
+  loop: "{{ beat_modules }}"
+
+- name: "{{ beat_playbook }}: Create module config"
+  become: true
+  ansible.builtin.template:
+    src: module.yml.j2
+    dest: /etc/{{ beat_name }}/additional_modules.d/{{ item.module }}.yml{{ '.disabled' if not (item.enabled | default(True)) }}
+    mode: "0644"
+  when:
+    - item.config is defined
+  loop: "{{ beat_modules }}"
+
+- name: "{{ beat_playbook }}: Ensure only one module config exists"
+  become: true
+  ansible.builtin.file:
+    path: /etc/{{ beat_name }}/additional_modules.d/{{ item.module }}.yml{{ '.disabled' if (item.enabled | default(True)) }}
+    state: absent
+  when:
+    - item.config is defined
+  loop: "{{ beat_modules }}"

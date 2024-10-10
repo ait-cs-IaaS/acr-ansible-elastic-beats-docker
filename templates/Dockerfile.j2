@@ -1,0 +1,9 @@
+FROM {{ beat_docker_image }}
+
+COPY additional_modules/ /usr/share/{{ beat_name }}/module
+
+COPY additional_modules.d/ /usr/share/{{ beat_name }}/modules.d
+
+{% for module in beat_modules %}
+RUN {{ beat_name }} modules {{ 'enable' if (module.enabled | default(True)) else 'disable' }} {{ module.module }}
+{% endfor %}

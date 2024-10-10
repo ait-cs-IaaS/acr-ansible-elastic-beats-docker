@@ -1,95 +1,16 @@
 ---
+- name: "00 bootstrap"
+  ansible.builtin.include_tasks: "00_bootstrap.yml"
 
-- name: "{{ beat_playbook }}: Ensure Docker is installed"
-  become: true
-  ansible.builtin.apt:
-    name:
-      - docker.io
-    cache_valid_time: 86400
-  register: apt_install
-  until: apt_install is succeeded
+- name: "01 beat modules"
+  ansible.builtin.include_tasks: "01_beat-modules.yml"
 
-- name: "{{ beat_playbook }}: Ensure Docker service is running"
-  become: true
-  ansible.builtin.service:
-    name: docker
-    state: started
-    enabled: true
+- name: "02 docker"
+  ansible.builtin.include_tasks: "02_docker.yml"
 
-- name: "{{ beat_playbook }}: Ensure folders exist"
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: directory
-    recurse: true
-    owner: root
-    group: root
-  with_items:
-    - /etc/{{ beat_name }}
-    - /var/log/{{ beat_name }}
+- name: "03 systemd"
+  ansible.builtin.include_tasks: "03_systemd.yml"
 
-- name: "{{ beat_playbook }}: Deploy config file"
-  become: true
-  ansible.builtin.template:
-    src: config.yml.j2
-    dest: "/etc/{{ beat_name }}/{{ beat_name }}.yml"
-    mode: "0644"
-    force: true
-    owner: root
-    group: root
-
-- ansible.builtin.debug:
-    msg: "Pulling docker image ... [Be patient]"
-
-- name: "{{ beat_playbook }}: Pull docker image"
-  become: true
-  ansible.builtin.shell:
-    cmd: docker pull {{ beat_docker_image }}
-
-- name: "{{ beat_playbook }}: Create systemd service file for beat"
-  become: true
-  ansible.builtin.copy:
-    dest: /etc/systemd/system/{{ beat_name }}.service
-    content: |
-      [Unit]
-      Description={{ beat_docker_name}} Docker Service
-      Requires=docker.service
-      After=docker.service
-
-      [Service]
-      User=root
-      Restart=always
-      ExecStart=/usr/bin/docker run \
-          --rm \
-          --network host \
-          --hostname="{{ beat_docker_hostname }}" \
-          --name="{{ beat_docker_name}}" \
-          --privileged \
-          --user="root" \
-          --cap-add="ALL" \
-          --volume="{{ beat_ca_crt }}:/usr/local/share/ca-certificates/ca.crt:ro" \
-          --volume="/etc/{{ beat_name }}/{{ beat_name }}.yml:/usr/share/{{ beat_name }}/{{ beat_name }}.yml:ro" \
-          --volume="/var/log/{{ beat_name }}:/usr/share/{{ beat_name }}/log:rw" \
-          {{ beat_docker_extra_args | indent(10, true) | trim }} \
-          --pid=host \
-          --volume=/var/run/docker.sock:/var/run/docker.sock \
-          {{ beat_docker_image }} --strict.perms=false
-      ExecStop=/usr/bin/docker stop {{ beat_docker_name}}
-
-      [Install]
-      WantedBy=multi-user.target
-
-- name: "{{ beat_playbook }}: Ensure beat_name service is running"
-  become: true
-  ansible.builtin.systemd:
-    name: "{{ beat_name }}"
-    state: restarted
-    daemon_reload: true
-    enabled: true
-
-- name: "{{ beat_playbook }}: Enable/Disable modules"
-  become: true
-  ansible.builtin.command: 
-    cmd: "docker exec {{ beat_docker_name}} {{ beat_name }} modules {{ 'enable' if (item.enabled | default(True)) else 'disable' }} {{ item.module }}"
-  register: module_out
-  changed_when: "'is already' not in module_out.stdout and 'is already' not in module_out.stderr"
-  loop: "{{ beat_modules }}"
+- name: "04 beat setup"
+  ansible.builtin.include_tasks: "04_beat-setup.yml"
+  when: run_beat_setup | default(false)

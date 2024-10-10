@@ -1,0 +1,34 @@
+---
+- name: "{{ beat_playbook }}: Ensure Docker is installed"
+  become: true
+  ansible.builtin.apt:
+    name:
+      - docker.io
+    cache_valid_time: 86400
+  register: apt_install
+  until: apt_install is succeeded
+
+- name: "{{ beat_playbook }}: Ensure Docker service is running"
+  become: true
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true
+
+- ansible.builtin.debug:
+    msg: Pulling docker image ... [Be patient]
+
+- name: "{{ beat_playbook }}: Pull docker image"
+  become: true
+  ansible.builtin.command:
+    cmd: docker pull {{ beat_docker_image }}
+
+- name: "{{ beat_playbook }}: Create Dockerfile for beat"
+  become: true
+  ansible.builtin.template:
+    src: Dockerfile.j2
+    dest: /etc/{{ beat_name }}/Dockerfile
+
+- name: Build Docker image from Dockerfile
+  ansible.builtin.command:
+    cmd: docker build -t {{ beat_docker_build_tag }} -f /etc/{{ beat_name }}/Dockerfile /etc/{{ beat_name }}

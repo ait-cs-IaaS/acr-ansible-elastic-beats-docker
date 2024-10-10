@@ -1,0 +1,21 @@
+---
+- name: "{{ beat_playbook }}: Ensure folders exist"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    recurse: true
+    owner: root
+    group: root
+  with_items:
+    - /etc/{{ beat_name }}
+    - /var/log/{{ beat_name }}
+
+- name: "{{ beat_playbook }}: Deploy config file"
+  become: true
+  ansible.builtin.template:
+    src: config.yml.j2
+    dest: /etc/{{ beat_name }}/{{ beat_name }}.yml
+    mode: "0644"
+    force: true
+    owner: root
+    group: root
